@@ -74,13 +74,14 @@ PERPLEXITY_API_KEY=your_perplexity_api_key
 const MultiModelAI = require('multimodel-ai');
 const dotenv = require('dotenv');
 
-// Load environment variables
+// Load environment variables (optional if using direct API keys)
 dotenv.config();
 
-// Initialize with OpenAI
+// Initialize with OpenAI using direct API key
 const ai = new MultiModelAI({
   provider: 'openai',
   modelName: 'gpt-4',
+  apiKey: 'your-openai-api-key',  // Direct API key
   system: 'You are a helpful AI assistant.'
 });
 
@@ -100,10 +101,11 @@ try {
   }
 }
 
-// Initialize with Anthropic
+// Initialize with Anthropic using environment variable
 const claude = new MultiModelAI({
   provider: 'anthropic',
   modelName: 'claude-3-opus-20240229',
+  // apiKey will be read from ANTHROPIC_API_KEY environment variable
   system: 'You are a helpful AI assistant.'
 });
 
@@ -202,10 +204,53 @@ The `MultiModelAI` constructor accepts the following configuration options:
 {
   provider: string;      // The AI provider to use (e.g., 'openai', 'anthropic')
   modelName: string;     // The specific model to use (e.g., 'gpt-4', 'claude-3-opus-20240229')
+  apiKey?: string;       // Optional API key. If not provided, will look for environment variable
   system?: string;       // Optional system prompt
-  apiKey?: string;       // Optional API key (prefer using environment variables)
 }
 ```
+
+### API Key Configuration
+
+You can provide API keys in two ways:
+
+1. **Direct Configuration**:
+   ```javascript
+   const ai = new MultiModelAI({
+     provider: 'openai',
+     modelName: 'gpt-4',
+     apiKey: 'your-api-key-here'  // Direct API key
+   });
+   ```
+
+2. **Environment Variables**:
+   ```javascript
+   // .env file
+   OPENAI_API_KEY=your-openai-api-key
+   ANTHROPIC_API_KEY=your-anthropic-api-key
+   // ... other provider keys
+
+   // In your code
+   const ai = new MultiModelAI({
+     provider: 'openai',
+     modelName: 'gpt-4'
+     // apiKey will be read from OPENAI_API_KEY environment variable
+   });
+   ```
+
+The environment variable names follow this pattern:
+- OpenAI: `OPENAI_API_KEY`
+- Anthropic: `ANTHROPIC_API_KEY`
+- Deepseek: `DEEPSEEK_API_KEY`
+- Mistral: `MISTRAL_API_KEY`
+- Groq: `GROQ_API_KEY`
+- Together AI: `TOGETHER_API_KEY`
+- Cohere: `COHERE_API_KEY`
+- Fireworks: `FIREWORKS_API_KEY`
+- DeepInfra: `DEEPINFRA_API_KEY`
+- Cerebras: `CEREBRAS_API_KEY`
+- Perplexity: `PERPLEXITY_API_KEY`
+
+Note: If both `apiKey` and the corresponding environment variable are provided, the `apiKey` takes precedence.
 
 The `query` method accepts these options:
 
@@ -265,21 +310,6 @@ The `query` method accepts these options:
 - Models: pplx-7b-online, pplx-70b-online
 - Version: 1.1.9
 
-## Fallback Mechanism
-
-The wrapper supports automatic fallback to alternative providers:
-
-```javascript
-const ai = new MultiModelAI({
-  provider: 'openai',
-  modelName: 'gpt-4',
-  fallbackProviders: ['anthropic', 'mistral']
-});
-
-// If OpenAI fails, it will try Anthropic, then Mistral
-const response = await ai.query('Your prompt here');
-```
-
 ## AWS Lambda Integration
 
 MultiModelAI can be used in AWS Lambda functions. Here's how to set it up:
@@ -288,7 +318,11 @@ MultiModelAI can be used in AWS Lambda functions. Here's how to set it up:
 
 ```javascript
 // index.js
-import MultiModelAI from 'multimodel-ai';
+const MultiModelAI = require('multimodel-ai');
+const dotenv = require('dotenv');
+
+// Load environment variables
+dotenv.config();
 
 // Initialize outside the handler for better performance
 const ai = new MultiModelAI({
@@ -297,7 +331,7 @@ const ai = new MultiModelAI({
   system: 'You are a helpful AI assistant.'
 });
 
-export const handler = async (event) => {
+exports.handler = async (event) => {
   try {
     const { prompt } = JSON.parse(event.body);
 
@@ -328,11 +362,19 @@ export const handler = async (event) => {
 
 ### Lambda Configuration
 
-1. **Environment Variables**: Set your API keys in Lambda environment variables:
-   ```bash
-   OPENAI_API_KEY=your_openai_api_key
-   ANTHROPIC_API_KEY=your_anthropic_api_key
-   # ... other provider keys as needed
+1. **API Keys**: You can set API keys in two ways:
+   ```javascript
+   // Method 1: Environment Variables in Lambda
+   // Set these in your Lambda function configuration
+   OPENAI_API_KEY=your-openai-api-key
+   ANTHROPIC_API_KEY=your-anthropic-api-key
+
+   // Method 2: Direct API Keys in Code
+   const ai = new MultiModelAI({
+     provider: 'openai',
+     modelName: 'gpt-4',
+     apiKey: process.env.OPENAI_API_KEY  // Read from Lambda environment variables
+   });
    ```
 
 2. **Lambda Layer**: For better performance, create a Lambda Layer with the dependencies:
@@ -372,7 +414,7 @@ export const handler = async (event) => {
      return aiInstance;
    }
 
-   export const handler = async (event) => {
+   exports.handler = async (event) => {
      const ai = getAI();
      // ... rest of the handler
    };
@@ -380,7 +422,7 @@ export const handler = async (event) => {
 
 2. **Streaming Support**:
    ```javascript
-   export const handler = async (event) => {
+   exports.handler = async (event) => {
      const ai = getAI();
 
      // For API Gateway with Lambda proxy integration
@@ -413,7 +455,7 @@ export const handler = async (event) => {
 
 3. **Error Handling and Retries**:
    ```javascript
-   export const handler = async (event) => {
+   exports.handler = async (event) => {
      const ai = getAI();
      const maxRetries = 3;
      let retryCount = 0;
@@ -443,7 +485,7 @@ export const handler = async (event) => {
 4. **Cost Optimization**:
    ```javascript
    // Use provider-specific models based on request type
-   export const handler = async (event) => {
+   exports.handler = async (event) => {
      const { prompt, useCase } = JSON.parse(event.body);
      const ai = getAI();
 
@@ -484,28 +526,10 @@ functions:
       - !Ref MultiModelAILayer
 ```
 
-For WebSocket API (streaming):
-```yaml
-functions:
-  aiStreamHandler:
-    handler: index.streamHandler
-    events:
-      - websocket:
-          route: $connect
-      - websocket:
-          route: $disconnect
-      - websocket:
-          route: aiStream
-    environment:
-      OPENAI_API_KEY: ${env:OPENAI_API_KEY}
-    layers:
-      - !Ref MultiModelAILayer
-```
-
 ### Monitoring and Logging
 
 ```javascript
-export const handler = async (event) => {
+exports.handler = async (event) => {
   const startTime = Date.now();
   const ai = getAI();
 
