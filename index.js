@@ -23,7 +23,7 @@ class LLM {
         }
 
         if (!config.modelName) {
-            throw new Error('Model name is required. Provide modelName in config');
+            throw new Error('Missing model name: Please provide an modelName in the configuration object');
         }
 
         // Validate provider
