@@ -18,11 +18,7 @@ class LLM {
             throw new Error('Provider is required in constructor. Use: openai or anthropic');
         }
 
-        if (config.provider === "openai" && !config.apiKey) {
-            throw new Error('API key is required. Provide apiKey in config or set environment variables');
-        }
-
-        if (config.provider === "anthropic" && !config.apiKey) {
+        if (!config.apiKey) {
             throw new Error('API key is required. Provide apiKey in config or set environment variables');
         }
 
@@ -57,13 +53,13 @@ class LLM {
 
         // Initialize OpenAI client
         this.openai = new OpenAI({
-            apiKey: config.openaiApiKey || (normalizedProvider === 'openai' ? config.apiKey : null),
+            apiKey: config.apiKey,
             fetchOptions,
         });
 
         // Initialize Anthropic client
         this.anthropic = new Anthropic({
-            apiKey: config.anthropicApiKey || (normalizedProvider === 'anthropic' ? config.apiKey : null),
+            apiKey: config.apiKey,
             fetchOptions,
         });
 
