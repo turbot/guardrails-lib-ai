@@ -25,7 +25,7 @@ async function openaiExample() {
 // Example 2: Anthropic with proxy
 async function anthropicExample() {
   const claude = new LLM({
-    provider: 'claude',
+    provider: 'anthropic',
     modelName: 'claude-3-opus-20240229',
     system: 'You are a helpful AI assistant.',
     proxyUrl: 'http://your-proxy-server:port' // Direct proxy configuration
