@@ -1,6 +1,5 @@
 const OpenAI = require('openai');
 const Anthropic = require('@anthropic-ai/sdk');
-const { HttpsProxyAgent } = require('https-proxy-agent');
 
 // Provider configurations
 const PROVIDERS = {
@@ -49,35 +48,23 @@ class LLM {
         };
 
         // Proxy configuration
-        let httpAgent = null;
+        let proxyAgent = null;
         if (this.defaultConfig.proxyUrl) {
-            httpAgent = new HttpsProxyAgent(this.defaultConfig.proxyUrl);
+            const undici = require("undici");
+            proxyAgent = new undici.ProxyAgent(this.defaultConfig.proxyUrl);
         }
-        // Helper function to create proxy-enabled fetch
-        const createProxyFetch = (providerName) => {
-            if (!httpAgent) return undefined;
-
-            const fetch = require('node-fetch');
-            return async (url, options = {}) => {
-
-                return fetch(url, {
-                    ...options,
-                    agent: httpAgent,
-                    timeout: options.timeout || 60000,
-                });
-            };
-        };
+        const fetchOptions = this.defaultConfig.proxyUrl ? { dispatcher: proxyAgent } : {};
 
         // Initialize OpenAI client
         this.openai = new OpenAI({
             apiKey: config.openaiApiKey || (normalizedProvider === 'openai' ? config.apiKey : null),
-            fetch: createProxyFetch('OpenAI')
+            fetchOptions,
         });
 
         // Initialize Anthropic client
         this.anthropic = new Anthropic({
-            apiKey: config.anthropicApiKey || (normalizedProvider === 'claude' ? config.apiKey : null),
-            fetch: createProxyFetch('Anthropic')
+            apiKey: config.anthropicApiKey || (normalizedProvider === 'anthropic' ? config.apiKey : null),
+            fetchOptions,
         });
 
     }
@@ -100,7 +87,7 @@ class LLM {
 
             // Build request options
             const requestOptions = {
-                model: options.model || this.defaultConfig.modelName ,
+                model: options.model || this.defaultConfig.modelName,
                 messages: messages
             };
 

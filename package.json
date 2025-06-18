@@ -12,6 +12,7 @@
     "ai",
     "language-models",
     "openai",
+    "anthropic",
     "ai-sdk"
   ],
   "author": "",
@@ -19,8 +20,7 @@
   "dependencies": {
     "openai": "5.5.1",
     "@anthropic-ai/sdk": "0.54.0",
-    "https-proxy-agent": "7.0.2",
-    "node-fetch": "2.7.0"
+    "undici": "7.10.0"
   },
   "devDependencies": {
     "eslint": "^8.57.0",
@@ -31,10 +31,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yourusername/multimodel-ai.git"
+    "url": "git+https://github.com/turbot/guardrails-llm.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/multimodel-ai/issues"
+    "url": "https://github.com/turbot/guardrails-llm/issues"
   },
-  "homepage": "https://github.com/yourusername/multimodel-ai#readme"
+  "homepage": "https://github.com/turbot/guardrails-llm#readme"
 }
