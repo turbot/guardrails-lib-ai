@@ -141,7 +141,7 @@ class LLM {
                 model: message.model
             };
         } catch (error) {
-            throw new Error(`Claude API Error: ${error.message}`);
+            throw new Error(`Anthropic API Error: ${error.message}`);
         }
     }
 
