@@ -12,26 +12,15 @@
     "ai",
     "language-models",
     "openai",
-    "anthropic",
-    "deepseek",
-    "mistral",
-    "groq",
-    "togetherai",
-    "cohere",
-    "fireworks",
-    "deepinfra",
-    "cerebras",
-    "perplexity",
-    "vercel",
     "ai-sdk"
   ],
   "author": "",
   "license": "Apache-2.0",
   "dependencies": {
     "openai": "5.5.1",
-    "@anthropic-ai/sdk": "^0.54.0",
-    "https-proxy-agent": "^7.0.2",
-    "node-fetch": "^2.7.0"
+    "@anthropic-ai/sdk": "0.54.0",
+    "https-proxy-agent": "7.0.2",
+    "node-fetch": "2.7.0"
   },
   "devDependencies": {
     "eslint": "^8.57.0",
