@@ -1,4 +1,4 @@
-const LLM = require('./index.js');
+const AI = require('./index.js');
 const dotenv = require('dotenv');
 
 // Load environment variables
@@ -6,7 +6,7 @@ dotenv.config();
 
 // Example 1: Basic OpenAI usage with proxy
 async function openaiExample() {
-  const llm = new LLM({
+  const ai = new AI({
     provider: 'openai',
     modelName: 'gpt-4',
     system: 'You are a helpful AI assistant.',
@@ -15,7 +15,7 @@ async function openaiExample() {
   });
 
   try {
-    const response = await llm.generate('Explain quantum computing in simple terms');
+    const response = await ai.generate('Explain quantum computing in simple terms');
     console.log('\nOpenAI Response:', response);
   } catch (error) {
     console.error('OpenAI Error:', error.message);
@@ -24,7 +24,7 @@ async function openaiExample() {
 
 // Example 2: Anthropic with proxy
 async function anthropicExample() {
-  const claude = new LLM({
+  const claude = new AI({
     provider: 'anthropic',
     modelName: 'claude-3-opus-20240229',
     system: 'You are a helpful AI assistant.',
@@ -41,7 +41,7 @@ async function anthropicExample() {
 
 // Example 3: Lambda-like usage with proxy from environment
 async function lambdaExample() {
-  const llm = new LLM({
+  const ai = new AI({
     provider: 'openai',
     modelName: 'gpt-4',
     // Proxy will be read from HTTPS_PROXY or HTTP_PROXY environment variable
@@ -57,7 +57,7 @@ async function lambdaExample() {
 
   try {
     const { prompt } = JSON.parse(event.body);
-    const response = await llm.generate(prompt);
+    const response = await ai.generate(prompt);
 
     // Simulate Lambda response
     console.log('\nLambda-like Response:', {
@@ -115,8 +115,8 @@ async function proxyExample() {
   for (const { name, config } of configs) {
     try {
       console.log(`\nTesting ${name}:`);
-      const llm = new LLM(config);
-      const response = await llm.generate('Hello, how are you?');
+      const ai = new AI(config);
+      const response = await ai.generate('Hello, how are you?');
       console.log('Response:', response);
     } catch (error) {
       console.error('Error:', error.message);
@@ -126,7 +126,7 @@ async function proxyExample() {
 
 // Run all examples
 async function runExamples() {
-  console.log('Running LLM Examples...\n');
+  console.log('Running AI Examples...\n');
 
   await openaiExample();
   await anthropicExample();

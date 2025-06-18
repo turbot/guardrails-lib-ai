@@ -4,7 +4,7 @@
 
 ### Added
 
-- Initial release of Guardrails LLM
+- Initial release of Guardrails Lib AI
 - Support for multiple AI providers:
   - OpenAI (GPT-4, GPT-3.5)
   - Anthropic (Claude)

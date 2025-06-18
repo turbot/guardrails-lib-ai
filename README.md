@@ -1,4 +1,4 @@
-# Guardrails LLM
+# Guardrails Lib AI
 
 A unified interface for multiple AI language model providers. This wrapper provides a consistent API to interact with various AI providers while handling provider-specific configurations and fallback mechanisms.
 
@@ -16,16 +16,16 @@ A unified interface for multiple AI language model providers. This wrapper provi
 ## Installation
 
 ```bash
-npm install guardrails-llm
+npm install guardrails-lib-ai
 ```
 
 ## Usage
 
 ```javascript
-const LLM = require('guardrails-llm');
+const AI = require('guardrails-lib-ai');
 
 // Initialize with OpenAI using direct API key and proxy
-const llm = new LLM({
+const ai = new AI({
   provider: 'openai',
   modelName: 'gpt-4',
   apiKey: 'your-openai-api-key',  // Direct API key
@@ -35,7 +35,7 @@ const llm = new LLM({
 
 // Query the model
 try {
-  const response = await llm.generate('Explain quantum computing in simple terms');
+  const response = await ai.generate('Explain quantum computing in simple terms');
   console.log(response);
 } catch (error) {
   // Errors are instances of Turbot error types
@@ -50,7 +50,7 @@ try {
 }
 
 // Initialize with Anthropic
-const claude = new LLM({
+const claude = new AI({
   provider: 'anthropic',
   modelName: 'claude-3-opus-20240229',
   apiKey: 'your-anthropic-api-key',  // Direct API key
@@ -72,7 +72,7 @@ The library supports proxy configuration in two ways:
 
 1. **Direct Configuration**:
    ```javascript
-   const llm = new LLM({
+   const ai = new AI({
      provider: 'openai',
      modelName: 'gpt-4',
      proxyUrl: 'http://your-proxy-server:port'
@@ -81,7 +81,7 @@ The library supports proxy configuration in two ways:
 
 2. **No Proxy**:
    ```javascript
-   const llm = new LLM({
+   const ai = new AI({
      provider: 'openai',
      modelName: 'gpt-4'
      // No proxy configuration
@@ -102,7 +102,7 @@ The wrapper uses Turbot's error handling system (`@turbot/errors`) to provide st
 - `BadConfigurationError`: Thrown when required configuration is missing
   ```javascript
   try {
-    const llm = new LLM({}); // Missing required config
+    const ai = new AI({}); // Missing required config
   } catch (error) {
     if (error.name === 'BadConfigurationError') {
       console.error('Missing parameters:', error.missingParams);
@@ -113,7 +113,7 @@ The wrapper uses Turbot's error handling system (`@turbot/errors`) to provide st
 - `ProviderError`: Thrown for provider-specific issues
   ```javascript
   try {
-    await llm.generate('prompt');
+    await ai.generate('prompt');
   } catch (error) {
     if (error.name === 'ProviderError') {
       console.error('Provider error:', error.message);
@@ -125,7 +125,7 @@ The wrapper uses Turbot's error handling system (`@turbot/errors`) to provide st
 - `ModelError`: Thrown for model-specific issues
   ```javascript
   try {
-    await llm.generate('prompt');
+    await ai.generate('prompt');
   } catch (error) {
     if (error.name === 'ModelError') {
       console.error('Model error:', error.message);
@@ -136,7 +136,7 @@ The wrapper uses Turbot's error handling system (`@turbot/errors`) to provide st
 
 ## Configuration Options
 
-The `LLM` constructor accepts the following configuration options:
+The `AI` constructor accepts the following configuration options:
 
 ```javascript
 {
@@ -155,7 +155,7 @@ The `LLM` constructor accepts the following configuration options:
 You must provide API keys directly in the configuration:
 
 ```javascript
-const llm = new LLM({
+const ai = new AI({
   provider: 'openai',
   modelName: 'gpt-4',
   apiKey: 'your-api-key-here'  // Direct API key (required)

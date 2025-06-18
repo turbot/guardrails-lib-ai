@@ -1,5 +1,5 @@
 {
-  "name": "guardrails-llm",
+  "name": "guardrails-lib-ai",
   "version": "1.0.0",
   "description": "A unified interface for multiple AI language model providers",
   "main": "index.js",
@@ -31,10 +31,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/turbot/guardrails-llm.git"
+    "url": "git+https://github.com/turbot/guardrails-lib-ai.git"
   },
   "bugs": {
-    "url": "https://github.com/turbot/guardrails-llm/issues"
+    "url": "https://github.com/turbot/guardrails-lib-ai/issues"
   },
-  "homepage": "https://github.com/turbot/guardrails-llm#readme"
+  "homepage": "https://github.com/turbot/guardrails-lib-ai#readme"
 }

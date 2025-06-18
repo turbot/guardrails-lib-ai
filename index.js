@@ -11,7 +11,7 @@ const PROVIDERS = {
     }
 };
 
-class LLM {
+class AI {
     constructor(config = {}) {
         // Validate required configuration
         if (!config.provider) {
@@ -213,4 +213,4 @@ class LLM {
     }
 }
 
-module.exports = LLM;
+module.exports = AI;
