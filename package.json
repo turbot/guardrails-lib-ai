@@ -1,7 +1,7 @@
 {
   "name": "guardrails-llm",
   "version": "1.0.0",
-  "description": "A unified interface for multiple AI language model providers built on Vercel AI SDK",
+  "description": "A unified interface for multiple AI language model providers",
   "main": "index.js",
   "scripts": {
     "test": "jest",

@@ -1,6 +1,6 @@
 # Guardrails LLM
 
-A unified interface for multiple AI language model providers built on Vercel AI SDK. This wrapper provides a consistent API to interact with various AI providers while handling provider-specific configurations and fallback mechanisms.
+A unified interface for multiple AI language model providers. This wrapper provides a consistent API to interact with various AI providers while handling provider-specific configurations and fallback mechanisms.
 
 ## Features
 
