@@ -1,132 +1,233 @@
-const { generateText } = require('ai');
-const { openai } = require('@ai-sdk/openai');
-const { anthropic } = require('@ai-sdk/anthropic');
-const { deepseek } = require('@ai-sdk/deepseek');
-const { mistral } = require('@ai-sdk/mistral');
-const { groq } = require('@ai-sdk/groq');
-const { togetherai } = require('@ai-sdk/togetherai');
-const { cohere } = require('@ai-sdk/cohere');
-const { fireworks } = require('@ai-sdk/fireworks');
-const { deepinfra } = require('@ai-sdk/deepinfra');
-const { cerebras } = require('@ai-sdk/cerebras');
-const { perplexity } = require('@ai-sdk/perplexity');
-const errors  = require('@turbot/errors');
-const  log  = require('@turbot/log');
+const OpenAI = require('openai');
+const Anthropic = require('@anthropic-ai/sdk');
+const { HttpsProxyAgent } = require('https-proxy-agent');
 
+// Provider configurations
 const PROVIDERS = {
-  openai,
-  anthropic,
-  deepseek,
-  mistral,
-  groq,
-  togetherai,
-  cohere,
-  fireworks,
-  deepinfra,
-  cerebras,
-  perplexity,
+    openai: {
+        name: 'OpenAI GPT',
+    },
+    anthropic: {
+        name: 'Anthropic Claude',
+    }
 };
 
-class MultiModelAI {
-  constructor(config = {}) {
-    // Validate required configuration
-    const missingParams = [];
-    if (!config.provider) missingParams.push('provider');
-    if (!config.modelName) missingParams.push('modelName');
-    if (!config.apiKey && !process.env[`${config.provider?.toUpperCase()}_API_KEY`]) {
-      missingParams.push('apiKey (or corresponding environment variable)');
-    }
-
-    if (missingParams.length > 0) {
-      const error = new errors.BadConfigurationError(
-        `Missing required configuration parameters: ${missingParams.join(', ')}`,
-        {
-          missingParams,
-          config: { ...config, apiKey: config.apiKey ? '[REDACTED]' : undefined }
+class LLM {
+    constructor(config = {}) {
+        // Validate required configuration
+        if (!config.provider) {
+            throw new Error('Provider is required in constructor. Use: openai or anthropic');
         }
-      );
-      log.error('Invalid configuration', {
-        error: error.message,
-        missingParams,
-      });
-      throw error;
+
+        if (config.provider === "openai" && !config.apiKey) {
+            throw new Error('API key is required. Provide apiKey in config or set environment variables');
+        }
+
+        if (config.provider === "anthropic" && !config.apiKey) {
+            throw new Error('API key is required. Provide apiKey in config or set environment variables');
+        }
+
+        if (!config.modelName) {
+            throw new Error('Model name is required. Provide modelName in config');
+        }
+
+        // Validate provider
+        const normalizedProvider = config.provider.toLowerCase();
+        if (!PROVIDERS[normalizedProvider]) {
+            throw new Error(`Invalid provider: ${config.provider}. Supported providers: ${Object.keys(PROVIDERS).join(', ')}`);
+        }
+
+        // Store configuration (no defaults except for optional ones)
+        this.defaultConfig = {
+            provider: normalizedProvider,
+            modelName: config.modelName, // null if not provided
+            system: config.system, // null if not provided
+            apiKey: config.apiKey, // null if not provided
+            proxyUrl: config.proxyUrl || process.env.HTTPS_PROXY || process.env.HTTP_PROXY,
+            max_tokens: config.max_tokens, // null if not provided, will use API defaults
+            temperature: config.temperature // null if not provided, will use API defaults
+        };
+
+        // Proxy configuration
+        let httpAgent = null;
+        if (this.defaultConfig.proxyUrl) {
+            httpAgent = new HttpsProxyAgent(this.defaultConfig.proxyUrl);
+        }
+        // Helper function to create proxy-enabled fetch
+        const createProxyFetch = (providerName) => {
+            if (!httpAgent) return undefined;
+
+            const fetch = require('node-fetch');
+            return async (url, options = {}) => {
+
+                return fetch(url, {
+                    ...options,
+                    agent: httpAgent,
+                    timeout: options.timeout || 60000,
+                });
+            };
+        };
+
+        // Initialize OpenAI client
+        this.openai = new OpenAI({
+            apiKey: config.openaiApiKey || (normalizedProvider === 'openai' ? config.apiKey : null),
+            fetch: createProxyFetch('OpenAI')
+        });
+
+        // Initialize Anthropic client
+        this.anthropic = new Anthropic({
+            apiKey: config.anthropicApiKey || (normalizedProvider === 'claude' ? config.apiKey : null),
+            fetch: createProxyFetch('Anthropic')
+        });
+
     }
 
-    this.config = {
-      provider: config.provider,
-      modelName: config.modelName,
-      apiKey: config.apiKey, // Not used directly, relies on env vars
-      ...config,
-    };
-    this.provider = this.getProvider();
-    log.info('MultiModelAI initialized', {
-      provider: this.config.provider,
-      modelName: this.config.modelName,
-    });
-  }
+    async callOpenAI(prompt, options = {}) {
+        try {
+            const messages = [];
 
-  getProvider() {
-    const providerKey = this.config.provider.toLowerCase();
-    const provider = PROVIDERS[providerKey];
-    if (!provider) {
-      const error = new errors.ProviderError(`Unsupported provider: ${providerKey}`);
-      log.error('Provider not supported', {
-        provider: providerKey,
-        error: error.message,
-      });
-      throw error;
+            // Add system message if provided
+            const systemMessage = options.system || this.defaultConfig.system;
+            if (systemMessage) {
+                messages.push({
+                    role: "system",
+                    content: systemMessage
+                });
+            }
+
+            // Add user message
+            messages.push({ role: "user", content: prompt });
+
+            // Build request options
+            const requestOptions = {
+                model: options.model || this.defaultConfig.modelName ,
+                messages: messages
+            };
+
+            // Only add optional parameters if they were specified
+            if (options.max_tokens || this.defaultConfig.max_tokens) {
+                requestOptions.max_tokens = options.max_tokens || this.defaultConfig.max_tokens;
+            }
+
+            if (options.temperature !== undefined || this.defaultConfig.temperature !== undefined) {
+                requestOptions.temperature = options.temperature !== undefined ? options.temperature : this.defaultConfig.temperature;
+            }
+
+            const completion = await this.openai.chat.completions.create(requestOptions);
+
+            return {
+                content: completion.choices[0].message.content,
+                usage: completion.usage,
+                model: completion.model
+            };
+        } catch (error) {
+            throw new Error(`OpenAI API Error: ${error.message}`);
+        }
     }
-    return provider;
-  }
 
-  async query(prompt, options = {}) {
-    const startTime = Date.now();
+    async callAnthropic(prompt, options = {}) {
+        try {
+            const messages = [{ role: "user", content: prompt }];
 
-    try {
-      const { modelName, system } = this.config;
-      const { systemPrompt, ...rest } = options;
-      const result = await generateText({
-        model: this.provider(modelName),
-        system: systemPrompt || system || undefined,
-        prompt,
-        ...rest,
-      });
+            // Build request options
+            const requestOptions = {
+                model: options.model || this.defaultConfig.modelName,
+                messages: messages
+            };
 
-      return result.text;
-    } catch (error) {
-      // Convert to Turbot error types
-      let turbotError;
-      if (error.name === 'ProviderError') {
-        turbotError = new errors.ProviderError(error.message, {
-          cause: error,
-          provider: this.config.provider,
-          modelName: this.config.modelName,
-        });
-      } else if (error.name === 'ModelError') {
-        turbotError = new errors.ModelError(error.message, {
-          cause: error,
-          provider: this.config.provider,
-          modelName: this.config.modelName,
-        });
-      } else {
-        turbotError = new errors.AIError('Unexpected error during AI query', {
-          cause: error,
-          provider: this.config.provider,
-          modelName: this.config.modelName,
-        });
-      }
+            // Add system message if provided
+            const systemMessage = options.system || this.defaultConfig.system;
+            if (systemMessage) {
+                requestOptions.system = systemMessage;
+            }
 
-      log.error('AI query failed', {
-        error: turbotError.message,
-        errorType: turbotError.name,
-        provider: this.config.provider,
-        modelName: this.config.modelName,
-        stack: turbotError.stack,
-      });
+            // Only add optional parameters if they were specified
+            if (options.max_tokens || this.defaultConfig.max_tokens) {
+                requestOptions.max_tokens = options.max_tokens || this.defaultConfig.max_tokens;
+            }
 
-      throw turbotError;
+            if (options.temperature !== undefined || this.defaultConfig.temperature !== undefined) {
+                requestOptions.temperature = options.temperature !== undefined ? options.temperature : this.defaultConfig.temperature;
+            }
+
+            const message = await this.anthropic.messages.create(requestOptions);
+
+            return {
+                content: message.content[0].text,
+                usage: message.usage,
+                model: message.model
+            };
+        } catch (error) {
+            throw new Error(`Claude API Error: ${error.message}`);
+        }
     }
-  }
+
+    async generate(params) {
+        // Support both object params and direct prompt string
+        if (typeof params === 'string') {
+            params = { prompt: params };
+        }
+
+        // Extract prompt
+        const prompt = params.prompt;
+
+        // Validate required parameters
+        if (!prompt) {
+            throw new Error('Prompt is required');
+        }
+
+        // Use provider from params or constructor (no fallback defaults)
+        const provider = params.provider || this.defaultConfig.provider;
+        const model = params.model || params.modelName || this.defaultConfig.modelName;
+        const max_tokens = params.max_tokens || this.defaultConfig.max_tokens;
+        const temperature = params.temperature !== undefined ? params.temperature : this.defaultConfig.temperature;
+        const system = params.system || this.defaultConfig.system;
+
+        // Validate provider (should not reach here if constructor validation worked)
+        const normalizedProvider = provider.toLowerCase();
+        if (!PROVIDERS[normalizedProvider]) {
+            throw new Error(`Unsupported provider: ${provider}. Supported providers: ${Object.keys(PROVIDERS).join(', ')}`);
+        }
+
+        // Prepare options (only include defined values)
+        const options = {
+            model: model,
+            ...params // Allow any other custom options
+        };
+
+        // Only add optional parameters if they have values
+        if (max_tokens) options.max_tokens = max_tokens;
+        if (temperature !== undefined) options.temperature = temperature;
+        if (system) options.system = system;
+
+        // Route to appropriate provider
+        let result;
+        switch (normalizedProvider) {
+            case 'openai':
+                result = await this.callOpenAI(prompt, options);
+                break;
+            case 'anthropic':
+                result = await this.callAnthropic(prompt, options);
+                break;
+            default:
+                throw new Error(`Provider ${provider} not implemented`);
+        }
+
+        return {
+            success: true,
+            provider: normalizedProvider,
+            prompt,
+            response: result.content,
+            model: result.model,
+            usage: result.usage,
+            timestamp: new Date().toISOString(),
+            config: {
+                system: system || null,
+                max_tokens: max_tokens || null,
+                temperature: temperature !== undefined ? temperature : null
+            }
+        };
+    }
 }
 
-module.exports = MultiModelAI;
+module.exports = LLM;
