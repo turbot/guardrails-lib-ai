@@ -92,7 +92,6 @@ The proxy configuration is supported for both OpenAI and Anthropic providers. Wh
 - All API requests will be routed through the specified proxy server
 - The proxy configuration is applied consistently across all providers
 - Both HTTP and HTTPS proxies are supported
-- Proxy authentication is supported (if required by your proxy server)
 
 ## Error Handling
 
