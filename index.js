@@ -1,124 +1,154 @@
-const { generateText } = require('ai');
-const { openai } = require('@ai-sdk/openai');
-const { anthropic } = require('@ai-sdk/anthropic');
-const { deepseek } = require('@ai-sdk/deepseek');
-const { mistral } = require('@ai-sdk/mistral');
-const { groq } = require('@ai-sdk/groq');
-const { togetherai } = require('@ai-sdk/togetherai');
-const { cohere } = require('@ai-sdk/cohere');
-const { fireworks } = require('@ai-sdk/fireworks');
-const { deepinfra } = require('@ai-sdk/deepinfra');
-const { cerebras } = require('@ai-sdk/cerebras');
-const { perplexity } = require('@ai-sdk/perplexity');
-const errors  = require('@turbot/errors');
-const  log  = require('@turbot/log');
-
-const PROVIDERS = {
-  openai,
-  anthropic,
-  deepseek,
-  mistral,
-  groq,
-  togetherai,
-  cohere,
-  fireworks,
-  deepinfra,
-  cerebras,
-  perplexity,
-};
+const Anthropic = require("@anthropic-ai/sdk");
+const OpenAI = require("openai");
+const undici = require("undici");
+const errors = require("@turbot/errors");
+const log = require("@turbot/log");
 
 class MultiModelAI {
   constructor(config = {}) {
     // Validate required configuration
     const missingParams = [];
-    if (!config.provider) missingParams.push('provider');
-    if (!config.modelName) missingParams.push('modelName');
-    if (!config.apiKey && !process.env[`${config.provider?.toUpperCase()}_API_KEY`]) {
-      missingParams.push('apiKey (or corresponding environment variable)');
+    if (!config.provider) missingParams.push("provider");
+    if (!config.modelName) missingParams.push("modelName");
+
+    // Check if API key is provided directly or via environment variable
+    const envKeyName = `${config.provider?.toUpperCase()}_API_KEY`;
+    if (!config.apiKey && !process.env[envKeyName]) {
+      missingParams.push("apiKey (or corresponding environment variable)");
     }
 
     if (missingParams.length > 0) {
-      const error = new errors.BadConfigurationError(
-        `Missing required configuration parameters: ${missingParams.join(', ')}`,
+      const error = errors.badConfiguration(
+        `Missing required configuration parameters: ${missingParams.join(
+          ", "
+        )}`,
         {
           missingParams,
-          config: { ...config, apiKey: config.apiKey ? '[REDACTED]' : undefined }
+          config: {
+            ...config,
+            apiKey: config.apiKey ? "[REDACTED]" : undefined,
+          },
         }
       );
-      log.error('Invalid configuration', {
+      log.error("Invalid configuration", {
         error: error.message,
         missingParams,
       });
       throw error;
     }
 
+    // Set up environment variable if API key is provided directly
+    if (config.apiKey && !process.env[envKeyName]) {
+      process.env[envKeyName] = config.apiKey;
+    }
+
     this.config = {
       provider: config.provider,
       modelName: config.modelName,
-      apiKey: config.apiKey, // Not used directly, relies on env vars
+      apiKey: config.apiKey, // Keep for reference, but providers will use env vars
       ...config,
     };
-    this.provider = this.getProvider();
-    log.info('MultiModelAI initialized', {
+
+    log.info("MultiModelAI initialized", {
       provider: this.config.provider,
       modelName: this.config.modelName,
     });
   }
 
-  getProvider() {
-    const providerKey = this.config.provider.toLowerCase();
-    const provider = PROVIDERS[providerKey];
-    if (!provider) {
-      const error = new errors.ProviderError(`Unsupported provider: ${providerKey}`);
-      log.error('Provider not supported', {
-        provider: providerKey,
-        error: error.message,
-      });
-      throw error;
+  getProviderClient(provider) {
+    console.log("Creating Provider Client...", { provider });
+
+    const proxyUrl = process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
+    const proxyAgent = new undici.ProxyAgent(proxyUrl);
+
+    switch (provider.toLowerCase()) {
+      case "openai":
+        return new OpenAI({
+          apiKey: process.env.OPENAI_API_KEY,
+          fetchOptions: {
+            dispatcher: proxyAgent,
+          },
+        });
+      case "anthropic":
+        return new Anthropic({
+          apiKey: process.env.ANTHROPIC_API_KEY,
+          fetchOptions: {
+            dispatcher: proxyAgent,
+          },
+        });
+      default:
+        throw new Error(`Unsupported provider: ${provider}`);
     }
-    return provider;
   }
 
   async query(prompt, options = {}) {
-    const startTime = Date.now();
-
     try {
-      const { modelName, system } = this.config;
+      const { modelName, system, provider } = this.config;
       const { systemPrompt, ...rest } = options;
-      const result = await generateText({
-        model: this.provider(modelName),
-        system: systemPrompt || system || undefined,
-        prompt,
-        ...rest,
-      });
 
-      return result.text;
+      // Configure provider client with proxy
+      const client = this.getProviderClient(provider);
+
+      console.log(`Executing the query with ${provider} and ${modelName}`);
+
+      if (provider === "anthropic") {
+        const message = await client.messages.create({
+          max_tokens: 1024,
+          messages: [{ role: "user", content: prompt }],
+          model: modelName,
+        });
+
+        const content = message.content[0].text;
+        if (content) {
+          return JSON.stringify(content);
+        }
+
+        return content;
+      } else {
+        const completion = await client.chat.completions.create({
+          model: modelName,
+          messages: [{ role: "user", content: prompt }],
+          max_tokens: options.max_tokens || 1000,
+          temperature: options.temperature || 0.7,
+        });
+
+        return completion.choices[0].message.content;
+      }
     } catch (error) {
       // Convert to Turbot error types
       let turbotError;
-      if (error.name === 'ProviderError') {
-        turbotError = new errors.ProviderError(error.message, {
+      if (error.message && error.message.includes("API")) {
+        // API-related errors
+        turbotError = errors.unavailable(`AI API error: ${error.message}`, {
           cause: error,
           provider: this.config.provider,
           modelName: this.config.modelName,
         });
-      } else if (error.name === 'ModelError') {
-        turbotError = new errors.ModelError(error.message, {
-          cause: error,
-          provider: this.config.provider,
-          modelName: this.config.modelName,
-        });
+      } else if (error.message && error.message.includes("model")) {
+        // Model-related errors
+        turbotError = errors.badConfiguration(
+          `AI model error: ${error.message}`,
+          {
+            cause: error,
+            provider: this.config.provider,
+            modelName: this.config.modelName,
+          }
+        );
       } else {
-        turbotError = new errors.AIError('Unexpected error during AI query', {
-          cause: error,
-          provider: this.config.provider,
-          modelName: this.config.modelName,
-        });
+        // General AI query errors
+        turbotError = errors.internal(
+          `Unexpected error during AI query: ${error.message}`,
+          {
+            cause: error,
+            provider: this.config.provider,
+            modelName: this.config.modelName,
+          }
+        );
       }
 
-      log.error('AI query failed', {
+      log.error("AI query failed", {
         error: turbotError.message,
-        errorType: turbotError.name,
+        errorType: turbotError.constructor.name,
         provider: this.config.provider,
         modelName: this.config.modelName,
         stack: turbotError.stack,
