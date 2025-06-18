@@ -19,7 +19,7 @@ class LLM {
         }
 
         if (!config.apiKey) {
-            throw new Error('API key is required. Provide apiKey in config or set environment variables');
+            throw new Error('Missing API key: Please provide an apiKey in the configuration object');
         }
 
         if (!config.modelName) {
