@@ -105,7 +105,7 @@ class AI {
                 model: completion.model
             };
         } catch (error) {
-          throw errors.internal("OpenAI API Error", error.message);
+          throw errors.internal(`OpenAI API Error: ${error.message}`, { error });
         }
     }
 
@@ -142,7 +142,7 @@ class AI {
                 model: message.model
             };
         } catch (error) {
-          throw errors.internal("Anthropic API Error", error.message);
+          throw errors.internal(`Anthropic API Error: ${error.message}`, { error });
         }
     }
 
