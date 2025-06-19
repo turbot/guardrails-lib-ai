@@ -1,5 +1,6 @@
 const OpenAI = require('openai');
 const Anthropic = require('@anthropic-ai/sdk');
+const errors = require("@turbot/errors");
 
 // Provider configurations
 const PROVIDERS = {
@@ -15,21 +16,21 @@ class AI {
     constructor(config = {}) {
         // Validate required configuration
         if (!config.provider) {
-            throw new Error('Provider is required in constructor. Use: openai or anthropic');
+          throw errors.badConfiguration("Provider is required in constructor. Use: openai or anthropic");
         }
 
         if (!config.apiKey) {
-            throw new Error('Missing API key: Please provide an apiKey in the configuration object');
+          throw errors.badConfiguration("Missing API key: Please provide an apiKey in the configuration object");
         }
 
         if (!config.modelName) {
-            throw new Error('Missing model name: Please provide an modelName in the configuration object');
+          throw errors.badConfiguration("Missing model name: Please provide an modelName in the configuration object");
         }
 
         // Validate provider
         const normalizedProvider = config.provider.toLowerCase();
         if (!PROVIDERS[normalizedProvider]) {
-            throw new Error(`Invalid provider: ${config.provider}. Supported providers: ${Object.keys(PROVIDERS).join(', ')}`);
+          throw errors.badRequest(`Invalid Provider: ${config.provider}. Supported providers: ${Object.keys(PROVIDERS).join(', ')}`);
         }
 
         // Store configuration (no defaults except for optional ones)
@@ -104,7 +105,7 @@ class AI {
                 model: completion.model
             };
         } catch (error) {
-            throw new Error(`OpenAI API Error: ${error.message}`);
+          throw errors.internal("OpenAI API Error", error.message);
         }
     }
 
@@ -141,7 +142,7 @@ class AI {
                 model: message.model
             };
         } catch (error) {
-            throw new Error(`Anthropic API Error: ${error.message}`);
+          throw errors.internal("Anthropic API Error", error.message);
         }
     }
 
@@ -156,7 +157,7 @@ class AI {
 
         // Validate required parameters
         if (!prompt) {
-            throw new Error('Prompt is required');
+          throw errors.insufficientData("Prompt is required");
         }
 
         // Use provider from params or constructor (no fallback defaults)
@@ -169,7 +170,7 @@ class AI {
         // Validate provider (should not reach here if constructor validation worked)
         const normalizedProvider = provider.toLowerCase();
         if (!PROVIDERS[normalizedProvider]) {
-            throw new Error(`Unsupported provider: ${provider}. Supported providers: ${Object.keys(PROVIDERS).join(', ')}`);
+            throw errors.badRequest(`Unsupported Provider: ${provider}. Supported providers: ${Object.keys(PROVIDERS).join(', ')}`);
         }
 
         // Prepare options (only include defined values)
@@ -193,7 +194,7 @@ class AI {
                 result = await this.callAnthropic(prompt, options);
                 break;
             default:
-                throw new Error(`Provider ${provider} not implemented`);
+                throw errors.notImplemented(`Provider ${provider} not implemented`);
         }
 
         return {
