@@ -16,21 +16,21 @@ class AI {
     constructor(config = {}) {
         // Validate required configuration
         if (!config.provider) {
-          throw errors.badConfiguration("Provider is required in constructor. Use: openai or anthropic");
+          throw errors.badConfiguration("Provider is required. Supported providers: openai, anthropic");
         }
 
         if (!config.apiKey) {
-          throw errors.badConfiguration("Missing API key: Please provide an apiKey in the configuration object");
+          throw errors.badConfiguration("API key is required. Please provide your API key");
         }
 
         if (!config.modelName) {
-          throw errors.badConfiguration("Missing model name: Please provide an modelName in the configuration object");
+          throw errors.badConfiguration("Model name is required. Please specify a model name");
         }
 
         // Validate provider
         const normalizedProvider = config.provider.toLowerCase();
         if (!PROVIDERS[normalizedProvider]) {
-          throw errors.badRequest(`Invalid Provider: ${config.provider}. Supported providers: ${Object.keys(PROVIDERS).join(', ')}`);
+          throw errors.badConfiguration(`Invalid provider: ${config.provider}. Supported providers: ${Object.keys(PROVIDERS).join(', ')}`);
         }
 
         // Store configuration (no defaults except for optional ones)
@@ -105,7 +105,7 @@ class AI {
                 model: completion.model
             };
         } catch (error) {
-          throw errors.internal(`OpenAI API Error: ${error.message}`, { error });
+          throw errors.internal(`OpenAI API error: ${error.message}`, { error });
         }
     }
 
@@ -142,7 +142,7 @@ class AI {
                 model: message.model
             };
         } catch (error) {
-          throw errors.internal(`Anthropic API Error: ${error.message}`, { error });
+          throw errors.internal(`Anthropic API error: ${error.message}`, { error });
         }
     }
 
@@ -157,7 +157,7 @@ class AI {
 
         // Validate required parameters
         if (!prompt) {
-          throw errors.insufficientData("Prompt is required");
+          throw errors.insufficientData("Prompt is required. Please provide a non-empty prompt");
         }
 
         // Use provider from params or constructor (no fallback defaults)
@@ -170,7 +170,7 @@ class AI {
         // Validate provider (should not reach here if constructor validation worked)
         const normalizedProvider = provider.toLowerCase();
         if (!PROVIDERS[normalizedProvider]) {
-            throw errors.badRequest(`Unsupported Provider: ${provider}. Supported providers: ${Object.keys(PROVIDERS).join(', ')}`);
+          throw errors.badRequest(`Unsupported provider: ${provider}. Supported providers: ${Object.keys(PROVIDERS).join(', ')}`);
         }
 
         // Prepare options (only include defined values)
@@ -194,7 +194,7 @@ class AI {
                 result = await this.callAnthropic(prompt, options);
                 break;
             default:
-                throw errors.notImplemented(`Provider ${provider} not implemented`);
+              throw errors.notImplemented(`Provider ${provider} is not implemented`);
         }
 
         return {
