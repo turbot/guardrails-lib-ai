@@ -1,6 +1,6 @@
 # Release History
 
-## 1.0.0[tbd]
+## 1.0.0[2025-06-23]
 
 ### Added
 
