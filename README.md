@@ -16,7 +16,7 @@ A unified interface for multiple AI language model providers. This wrapper provi
 ## Installation
 
 ```bash
-npm install guardrails-lib-ai
+npm install @turbot/guardrails-lib-ai
 ```
 
 ## Usage
