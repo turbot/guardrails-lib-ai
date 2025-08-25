@@ -6,7 +6,7 @@ A unified interface for multiple AI language model providers. This wrapper provi
 
 - **Unified Interface**: Single API to interact with multiple AI providers
 - **Provider Support**:
-  - OpenAI (GPT-4, GPT-3.5)
+  - OpenAI (GPT-5, GPT-4, GPT-3.5)
   - Anthropic (Claude)
 - **Error Handling**: Robust error handling with Turbot error types
 - **Logging**: Structured logging with Turbot logging utilities
@@ -27,7 +27,7 @@ const AI = require('guardrails-lib-ai');
 // Initialize with OpenAI using direct API key and proxy
 const ai = new AI({
   provider: 'openai',
-  modelName: 'gpt-4',
+  modelName: 'gpt-5',
   apiKey: 'your-openai-api-key',  // Direct API key
   system: 'You are a helpful AI assistant.',
   proxyUrl: 'http://your-proxy-server:port'  // Optional proxy configuration
@@ -74,7 +74,7 @@ The library supports proxy configuration in two ways:
    ```javascript
    const ai = new AI({
      provider: 'openai',
-     modelName: 'gpt-4',
+     modelName: 'gpt-5',
      proxyUrl: 'http://your-proxy-server:port'
    });
    ```
@@ -83,7 +83,7 @@ The library supports proxy configuration in two ways:
    ```javascript
    const ai = new AI({
      provider: 'openai',
-     modelName: 'gpt-4'
+     modelName: 'gpt-5'
      // No proxy configuration
    });
    ```
@@ -141,7 +141,7 @@ The `AI` constructor accepts the following configuration options:
 ```javascript
 {
   provider: string;      // The AI provider to use ('openai' or 'anthropic')
-  modelName: string;     // The specific model to use (e.g., 'gpt-4', 'claude-3-opus-20240229')
+  modelName: string;     // The specific model to use (e.g., 'gpt-5', 'claude-3-opus-20240229')
   apiKey: string;        // API key (required)
   system?: string;       // Optional system prompt
   proxyUrl?: string;     // Optional proxy URL
@@ -157,7 +157,7 @@ You must provide API keys directly in the configuration:
 ```javascript
 const ai = new AI({
   provider: 'openai',
-  modelName: 'gpt-4',
+  modelName: 'gpt-5',
   apiKey: 'your-api-key-here'  // Direct API key (required)
 });
 ```
