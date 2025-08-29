@@ -66,6 +66,8 @@ class AI {
 
     }
 
+    isGPT5 = (model) => typeof model === "string" && /^gpt-5/i.test(model);
+
     async callOpenAI(prompt, options = {}) {
         try {
             const messages = [];
@@ -88,13 +90,21 @@ class AI {
                 messages: messages
             };
 
+            const modelIsGPT5 = this.isGPT5(requestOptions.model);
+
             // Only add optional parameters if they were specified
             if (options.max_tokens || this.defaultConfig.max_tokens) {
-                requestOptions.max_tokens = options.max_tokens || this.defaultConfig.max_tokens;
+                requestOptions.max_completion_tokens = options.max_tokens || this.defaultConfig.max_tokens;
             }
 
-            if (options.temperature !== undefined || this.defaultConfig.temperature !== undefined) {
-                requestOptions.temperature = options.temperature !== undefined ? options.temperature : this.defaultConfig.temperature;
+            if (
+              !modelIsGPT5 &&
+              (options.temperature !== undefined || this.defaultConfig.temperature !== undefined)
+            ) {
+              requestOptions.temperature =
+                options.temperature !== undefined
+                  ? options.temperature
+                  : this.defaultConfig.temperature;
             }
 
             const completion = await this.openai.chat.completions.create(requestOptions);

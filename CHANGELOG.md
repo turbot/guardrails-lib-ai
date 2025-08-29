@@ -1,5 +1,11 @@
 # Release History
 
+## 1.1.0[TBD]
+
+### Added
+
+- Support for OpenAI GPT-5 model.
+
 ## 1.0.0[2025-06-23]
 
 ### Added
