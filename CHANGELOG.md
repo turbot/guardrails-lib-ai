@@ -4,7 +4,7 @@
 
 ### Added
 
-- Support OpenAI GPT-5 model.
+- Support for OpenAI GPT-5 model.
 
 ## 1.0.0[2025-06-23]
 
