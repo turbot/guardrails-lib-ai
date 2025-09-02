@@ -1,6 +1,6 @@
 {
   "name": "@turbot/guardrails-lib-ai",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "Turbot HQ, Inc",
   "description": "A unified interface for multiple AI language model providers",
   "main": "index.js",
