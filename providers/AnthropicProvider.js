@@ -68,7 +68,7 @@ class AnthropicProvider extends BaseProvider {
             }
 
             // Add temperature from generate() options only
-            if (options.temperature !== undefined || options.temperature !== null) {
+            if (options.temperature != null) {
                 requestOptions.temperature = options.temperature;
             }
 
