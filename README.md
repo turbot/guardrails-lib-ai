@@ -135,7 +135,8 @@ const response = await ai.generate({
 
 ### Constructor Parameters
 
-#### OpenAI
+<details>
+<summary><strong>OpenAI</strong></summary>
 
 | Parameter  | Type   | Required | Description                  |
 | ---------- | ------ | -------- | ---------------------------- |
@@ -145,7 +146,10 @@ const response = await ai.generate({
 | `system`   | string | No       | System prompt (AI's persona) |
 | `proxyUrl` | string | No       | HTTP proxy URL               |
 
-#### Anthropic
+</details>
+
+<details>
+<summary><strong>Anthropic</strong></summary>
 
 | Parameter  | Type   | Required | Description                                 |
 | ---------- | ------ | -------- | ------------------------------------------- |
@@ -155,7 +159,10 @@ const response = await ai.generate({
 | `system`   | string | No       | System prompt (AI's persona)                |
 | `proxyUrl` | string | No       | HTTP proxy URL                              |
 
-#### AWS Bedrock
+</details>
+
+<details>
+<summary><strong>AWS Bedrock</strong></summary>
 
 | Parameter  | Type   | Required | Description                              |
 | ---------- | ------ | -------- | ---------------------------------------- |
@@ -166,7 +173,10 @@ const response = await ai.generate({
 | `system`   | string | No       | System prompt (AI's persona)             |
 | `proxyUrl` | string | No       | HTTP proxy URL                           |
 
-#### Azure OpenAI
+</details>
+
+<details>
+<summary><strong>Azure OpenAI</strong></summary>
 
 | Parameter    | Type   | Required | Description                                  |
 | ------------ | ------ | -------- | -------------------------------------------- |
@@ -177,6 +187,8 @@ const response = await ai.generate({
 | `apiVersion` | string | Yes      | API version (e.g., `2024-04-01-preview`)     |
 | `system`     | string | No       | System prompt (AI's persona)                 |
 | `proxyUrl`   | string | No       | HTTP proxy URL                               |
+
+</details>
 
 ### generate() Parameters
 
