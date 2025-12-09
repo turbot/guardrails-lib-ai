@@ -1,5 +1,5 @@
 /**
- * Example usage of Guardrails AI Library v2
+ * Example usage of Guardrails AI Library
  *
  * This demonstrates the OOP-refactored version with proper design patterns.
  */
@@ -12,19 +12,19 @@ const AI = require('./index');
 async function exampleOpenAI() {
     console.log('\n=== OpenAI Example ===');
 
-    // Constructor: Only connection details + system prompt (AI's identity)
+    // Constructor: Connection details + system prompt (AI's identity)
     const ai = new AI({
         provider: "openai",
         apiKey: process.env.OPENAI_API_KEY || "sk-...",
         model: "gpt-4",
-        system: "You are a helpful geography teacher."  // AI's persona
+        system: "You are a helpful geography teacher."
     });
 
     // generate(): Request behavior parameters
     const response = await ai.generate({
         prompt: "What is the capital of France?",
-        temperature: 0.2,   // Per-request behavior
-        maxTokens: 1000     // Per-request behavior
+        temperature: 0.2,
+        maxTokens: 1000
     });
 
     console.log('Provider:', response.provider);
@@ -39,14 +39,13 @@ async function exampleOpenAI() {
 async function exampleAnthropic() {
     console.log('\n=== Anthropic Example ===');
 
-    // Constructor: Connection details only
     const ai = new AI({
         provider: "anthropic",
         apiKey: process.env.ANTHROPIC_API_KEY || "sk-ant-...",
-        model: "claude-3-opus-20240229"
+        model: "claude-3-opus-20240229",
+        system: "You are a helpful AI assistant."
     });
 
-    // generate(): Behavior parameters
     const response = await ai.generate({
         prompt: "Explain quantum computing in simple terms",
         temperature: 0.2,
@@ -63,16 +62,14 @@ async function exampleAnthropic() {
 async function exampleAwsBedrock() {
     console.log('\n=== AWS Bedrock Example ===');
 
-    // Constructor: Connection details only (provider, apiKey, modelId, region)
     const ai = new AI({
         provider: "aws bedrock",
         apiKey: process.env.AWS_BEDROCK_API_KEY || "ABSK...",
         modelId: "amazon.nova-lite-v1:0",
         region: "us-east-1",
-        system: "You are an AWS expert."  // AI's persona
+        system: "You are an AWS expert."
     });
 
-    // generate(): Behavior parameters
     const response = await ai.generate({
         prompt: "What is AWS Bedrock?",
         temperature: 0.2,
@@ -90,7 +87,6 @@ async function exampleAwsBedrock() {
 async function exampleAzureOpenAI() {
     console.log('\n=== Azure OpenAI Example ===');
 
-    // Constructor: Connection details (endpoint, deployment, apiVersion are mandatory)
     const ai = new AI({
         provider: "azure openai",
         apiKey: process.env.AZURE_OPENAI_API_KEY || "abc123...",
@@ -99,7 +95,6 @@ async function exampleAzureOpenAI() {
         apiVersion: "2024-04-01-preview"
     });
 
-    // generate(): Behavior parameters
     const response = await ai.generate({
         prompt: "What is Azure OpenAI?",
         temperature: 1.0,
@@ -111,7 +106,32 @@ async function exampleAzureOpenAI() {
 }
 
 /**
- * Example 5: Dynamic Provider Selection
+ * Example 5: Using Proxy Configuration
+ */
+async function exampleWithProxy() {
+    console.log('\n=== Proxy Configuration Example ===');
+
+    // Option 1: Proxy from environment variable (HTTPS_PROXY or HTTP_PROXY)
+    const aiWithEnvProxy = new AI({
+        provider: "openai",
+        apiKey: process.env.OPENAI_API_KEY || "sk-...",
+        model: "gpt-4"
+        // Proxy will be read from HTTPS_PROXY or HTTP_PROXY environment variable
+    });
+
+    // Option 2: Direct proxy URL configuration
+    const aiWithDirectProxy = new AI({
+        provider: "anthropic",
+        apiKey: process.env.ANTHROPIC_API_KEY || "sk-ant-...",
+        model: "claude-3-opus-20240229",
+        proxyUrl: "http://proxy.example.com:8080"
+    });
+
+    console.log('AI instances created with proxy configurations');
+}
+
+/**
+ * Example 6: Dynamic Provider Selection
  */
 async function exampleDynamicProvider() {
     console.log('\n=== Dynamic Provider Example ===');
@@ -120,7 +140,6 @@ async function exampleDynamicProvider() {
     console.log('Supported providers:', AI.getSupportedProviders());
 
     // Provider configuration from external source (e.g., credentials resolver)
-    // Only connection details in config
     const providerConfig = {
         provider: "openai",
         apiKey: "sk-...",
@@ -132,7 +151,6 @@ async function exampleDynamicProvider() {
     const ai = new AI(providerConfig);
     console.log('Using provider:', ai.getProviderName());
 
-    // Behavior parameters in generate()
     const response = await ai.generate({
         prompt: "Hello, how are you?",
         temperature: 0.2,
@@ -142,7 +160,7 @@ async function exampleDynamicProvider() {
 }
 
 /**
- * Example 6: Error Handling
+ * Example 7: Error Handling
  */
 async function exampleErrorHandling() {
     console.log('\n=== Error Handling Example ===');
@@ -179,18 +197,31 @@ async function exampleErrorHandling() {
     } catch (error) {
         console.log('AWS Bedrock validation error:', error.message);
     }
+
+    try {
+        // Missing endpoint for Azure OpenAI
+        const ai = new AI({
+            provider: "azure openai",
+            apiKey: "test",
+            deployment: "gpt-35-turbo"
+            // Missing: endpoint, apiVersion
+        });
+    } catch (error) {
+        console.log('Azure OpenAI validation error:', error.message);
+    }
 }
 
 /**
  * Run all examples
  */
 async function runExamples() {
-    console.log('Guardrails AI Library v2 - Examples');
-    console.log('====================================');
+    console.log('Guardrails AI Library - Examples');
+    console.log('=================================');
 
     try {
         await exampleDynamicProvider();
         await exampleErrorHandling();
+        await exampleWithProxy();
 
         // Uncomment when you have API keys configured:
         // await exampleOpenAI();
@@ -212,7 +243,7 @@ module.exports = {
     exampleAnthropic,
     exampleAwsBedrock,
     exampleAzureOpenAI,
+    exampleWithProxy,
     exampleDynamicProvider,
     exampleErrorHandling
 };
-
