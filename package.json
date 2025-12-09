@@ -6,6 +6,12 @@
   "main": "index.js",
   "scripts": {
     "test": "jest",
+    "test:unit": "jest --testPathIgnorePatterns=integration",
+    "test:integration": "jest --config jest.integration.config.js --maxWorkers=6",
+    "test:integration:openai": "jest --config jest.integration.config.js --maxWorkers=4 __tests__/integration/openai.integration.test.js",
+    "test:integration:anthropic": "jest --config jest.integration.config.js --maxWorkers=4 __tests__/integration/anthropic.integration.test.js",
+    "test:integration:bedrock": "jest --config jest.integration.config.js --maxWorkers=4 __tests__/integration/bedrock.integration.test.js",
+    "test:integration:azure-openai": "jest --config jest.integration.config.js --maxWorkers=4 __tests__/integration/azure-openai.integration.test.js",
     "example": "node example.js",
     "lint": "eslint ."
   },
@@ -28,6 +34,7 @@
     "undici": "7.15.0"
   },
   "devDependencies": {
+    "dotenv": "^17.2.3",
     "eslint": "^8.57.0",
     "jest": "^29.7.0"
   },
