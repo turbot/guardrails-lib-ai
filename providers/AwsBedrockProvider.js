@@ -102,13 +102,17 @@ class AwsBedrockProvider extends BaseProvider {
             const inferenceConfig = {};
 
             // Add maxTokens from generate() options only
-            if (options.maxTokens) {
-                inferenceConfig.maxTokens = options.maxTokens;
+            // Filter out empty/whitespace strings as they're not valid numeric values
+            const maxTokens = typeof options.maxTokens === 'string' ? options.maxTokens.trim() : options.maxTokens;
+            if (maxTokens) {
+                inferenceConfig.maxTokens = maxTokens;
             }
 
             // Add temperature from generate() options only
-            if (options.temperature != null) {
-                inferenceConfig.temperature = options.temperature;
+            // Filter out empty/whitespace strings as they're not valid numeric values
+            const temperature = typeof options.temperature === 'string' ? options.temperature.trim() : options.temperature;
+            if (temperature != null && temperature !== '') {
+                inferenceConfig.temperature = temperature;
             }
 
             // Only add inferenceConfig if it has properties

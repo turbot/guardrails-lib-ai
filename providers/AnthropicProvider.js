@@ -63,13 +63,17 @@ class AnthropicProvider extends BaseProvider {
             }
 
             // Add max_tokens from generate() options only
-            if (options.maxTokens) {
-                requestOptions.max_tokens = options.maxTokens;
+            // Filter out empty/whitespace strings as they're not valid numeric values
+            const maxTokens = typeof options.maxTokens === 'string' ? options.maxTokens.trim() : options.maxTokens;
+            if (maxTokens) {
+                requestOptions.max_tokens = maxTokens;
             }
 
             // Add temperature from generate() options only
-            if (options.temperature != null) {
-                requestOptions.temperature = options.temperature;
+            // Filter out empty/whitespace strings as they're not valid numeric values
+            const temperature = typeof options.temperature === 'string' ? options.temperature.trim() : options.temperature;
+            if (temperature != null && temperature !== '') {
+                requestOptions.temperature = temperature;
             }
 
             // Make API call

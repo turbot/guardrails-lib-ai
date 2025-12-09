@@ -103,14 +103,18 @@ class AzureOpenAIProvider extends BaseProvider {
             const modelIsGPT5 = this.isGPT5(requestOptions.model);
 
             // Add max_tokens from generate() options only
-            if (options.maxTokens) {
-                requestOptions.max_tokens = options.maxTokens;
+            // Filter out empty/whitespace strings as they're not valid numeric values
+            const maxTokens = typeof options.maxTokens === 'string' ? options.maxTokens.trim() : options.maxTokens;
+            if (maxTokens) {
+                requestOptions.max_tokens = maxTokens;
             }
 
             // Add temperature from generate() options only
             // Note: GPT-5 doesn't support temperature
-            if (!modelIsGPT5 && options.temperature !== undefined) {
-                requestOptions.temperature = options.temperature;
+            // Filter out empty/whitespace strings as they're not valid numeric values
+            const temperature = typeof options.temperature === 'string' ? options.temperature.trim() : options.temperature;
+            if (!modelIsGPT5 && temperature !== undefined && temperature !== null && temperature !== '') {
+                requestOptions.temperature = temperature;
             }
 
             // Make API call
