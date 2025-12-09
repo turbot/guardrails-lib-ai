@@ -2,7 +2,6 @@ const { BedrockRuntimeClient, ConverseCommand } = require("@aws-sdk/client-bedro
 const BaseProvider = require('./BaseProvider');
 const errors = require("@turbot/errors");
 
-// TODO: Check if AWS SDK supports proxy routing.
 
 /**
  * AWS Bedrock provider implementation.
@@ -48,6 +47,16 @@ class AwsBedrockProvider extends BaseProvider {
         // The SDK will automatically pick it up from AWS_BEARER_TOKEN_BEDROCK
         if (this.config.apiKey) {
             process.env.AWS_BEARER_TOKEN_BEDROCK = this.config.apiKey;
+        }
+
+        // Configure proxy support for AWS SDK v3
+        // Unlike other providers that use undici.ProxyAgent, AWS SDK v3 doesn't support
+        // custom fetch dispatchers. Instead, it automatically respects the HTTPS_PROXY
+        // environment variable. We only set it if not already configured to avoid
+        // overriding user's existing proxy settings.
+        const proxyUrl = this.config.proxyUrl;
+        if (proxyUrl && !process.env.HTTPS_PROXY) {
+            process.env.HTTPS_PROXY = proxyUrl;
         }
 
         // Initialize Bedrock Runtime client with region
@@ -98,7 +107,7 @@ class AwsBedrockProvider extends BaseProvider {
             }
 
             // Add temperature from generate() options only
-            if (options.temperature !== undefined || options.temperature !== null) {
+            if (options.temperature != null) {
                 inferenceConfig.temperature = options.temperature;
             }
 
