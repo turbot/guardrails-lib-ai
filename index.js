@@ -1,227 +1,177 @@
-const OpenAI = require('openai');
-const Anthropic = require('@anthropic-ai/sdk');
+/**
+ * Guardrails AI Library v2
+ *
+ * A refactored, OOP-compliant implementation with proper design patterns:
+ * - Strategy Pattern: Different providers implement same interface
+ * - Factory Pattern: ProviderFactory creates appropriate provider instances
+ * - Single Responsibility: Each class has one clear responsibility
+ * - Open/Closed: Easy to extend with new providers without modifying existing code
+ * - Dependency Inversion: Depends on BaseProvider abstraction, not concrete classes
+ *
+ * @module guardrails-lib-ai/v2
+ */
+
+const ProviderFactory = require('./providers/ProviderFactory');
 const errors = require("@turbot/errors");
 
-// Provider configurations
-const PROVIDERS = {
-    openai: {
-        name: 'OpenAI GPT',
-    },
-    anthropic: {
-        name: 'Anthropic Claude',
-    }
-};
-
+/**
+ * AI class - Main entry point for AI interactions.
+ *
+ * This class follows OOP best practices:
+ * - Delegates provider creation to ProviderFactory
+ * - Delegates AI generation to provider implementations
+ * - Single responsibility: orchestration and response formatting
+ * - No provider-specific logic in this class
+ *
+ * @class
+ * @example
+ * const AI = require('guardrails-lib-ai/v2');
+ *
+ * const ai = new AI({
+ *   provider: "openai",
+ *   apiKey: "sk-...",
+ *   modelName: "gpt-4"
+ * });
+ *
+ * const response = await ai.generate("Your prompt here");
+ */
 class AI {
+    /**
+     * Initialize AI with provider configuration.
+     *
+     * Constructor parameters define the client setup (connection details).
+     * Request behavior parameters (temperature, maxTokens) are passed to generate().
+     *
+     * The constructor:
+     * 1. Normalizes configuration (handles modelName/modelId/model/deployment aliases)
+     * 2. Uses ProviderFactory to create the appropriate provider
+     * 3. All provider-specific logic is delegated to provider classes
+     *
+     * @param {Object} config - Configuration object
+     * @param {string} config.provider - AI provider (openai, anthropic, aws bedrock, azure openai)
+     * @param {string} config.apiKey - API key for authentication
+     * @param {string} config.modelName - Model name or ID (required)
+     * @param {string} [config.modelId] - Alternative to modelName
+     * @param {string} [config.model] - Alternative to modelName
+     * @param {string} [config.deployment] - Alternative to modelName (Azure OpenAI)
+     * @param {string} [config.system] - System prompt (AI's persona/role)
+     * @param {string} [config.region] - AWS region for Bedrock
+     * @param {string} [config.endpoint] - Azure OpenAI endpoint URL
+     * @param {string} [config.apiVersion] - Azure OpenAI API version
+     * @param {string} [config.proxyUrl] - HTTP proxy URL
+     */
     constructor(config = {}) {
-        // Validate required configuration
-        if (!config.provider) {
-          throw errors.badConfiguration("Provider is required. Supported providers: openai, anthropic");
-        }
-
-        if (!config.apiKey) {
-          throw errors.badConfiguration("API key is required. Please provide your API key");
-        }
-
-        if (!config.modelName) {
-          throw errors.badConfiguration("Model name is required. Please specify a model name");
-        }
-
-        // Validate provider
-        const normalizedProvider = config.provider.toLowerCase();
-        if (!PROVIDERS[normalizedProvider]) {
-          throw errors.badConfiguration(`Invalid provider: ${config.provider}. Supported providers: ${Object.keys(PROVIDERS).join(', ')}`);
-        }
-
-        // Store configuration (no defaults except for optional ones)
-        this.defaultConfig = {
-            provider: normalizedProvider,
-            modelName: config.modelName, // null if not provided
-            system: config.system, // null if not provided
-            apiKey: config.apiKey, // null if not provided
-            proxyUrl: config.proxyUrl || process.env.HTTPS_PROXY || process.env.HTTP_PROXY,
-            max_tokens: config.max_tokens, // null if not provided, will use API defaults
-            temperature: config.temperature // null if not provided, will use API defaults
+        // Normalize model field names (different providers use different names)
+        const normalizedConfig = {
+            ...config,
+            modelName: config.modelName || config.modelId || config.model || config.deployment
         };
 
-        // Proxy configuration
-        let proxyAgent = null;
-        if (this.defaultConfig.proxyUrl) {
-            const undici = require("undici");
-            proxyAgent = new undici.ProxyAgent(this.defaultConfig.proxyUrl);
-        }
-        const fetchOptions = this.defaultConfig.proxyUrl ? { dispatcher: proxyAgent } : {};
+        // Use factory to create appropriate provider
+        // This delegates all provider-specific logic
+        this.provider = ProviderFactory.create(normalizedConfig);
 
-        // Initialize OpenAI client
-        this.openai = new OpenAI({
-            apiKey: config.apiKey,
-            fetchOptions,
-        });
-
-        // Initialize Anthropic client
-        this.anthropic = new Anthropic({
-            apiKey: config.apiKey,
-            fetchOptions,
-        });
-
+        // Store configuration for reference
+        this.config = normalizedConfig;
     }
 
-    isGPT5 = (model) => typeof model === "string" && /^gpt-5/i.test(model);
-
-    async callOpenAI(prompt, options = {}) {
-        try {
-            const messages = [];
-
-            // Add system message if provided
-            const systemMessage = options.system || this.defaultConfig.system;
-            if (systemMessage) {
-                messages.push({
-                    role: "system",
-                    content: systemMessage
-                });
-            }
-
-            // Add user message
-            messages.push({ role: "user", content: prompt });
-
-            // Build request options
-            const requestOptions = {
-                model: options.model || this.defaultConfig.modelName,
-                messages: messages
-            };
-
-            const modelIsGPT5 = this.isGPT5(requestOptions.model);
-
-            // Only add optional parameters if they were specified
-            if (options.max_tokens || this.defaultConfig.max_tokens) {
-                requestOptions.max_completion_tokens = options.max_tokens || this.defaultConfig.max_tokens;
-            }
-
-            if (
-              !modelIsGPT5 &&
-              (options.temperature !== undefined || this.defaultConfig.temperature !== undefined)
-            ) {
-              requestOptions.temperature =
-                options.temperature !== undefined
-                  ? options.temperature
-                  : this.defaultConfig.temperature;
-            }
-
-            const completion = await this.openai.chat.completions.create(requestOptions);
-
-            return {
-                content: completion.choices[0].message.content,
-                usage: completion.usage,
-                model: completion.model
-            };
-        } catch (error) {
-          throw errors.internal(`OpenAI API error: ${error.message}`, { error });
-        }
-    }
-
-    async callAnthropic(prompt, options = {}) {
-        try {
-            const messages = [{ role: "user", content: prompt }];
-
-            // Build request options
-            const requestOptions = {
-                model: options.model || this.defaultConfig.modelName,
-                messages: messages
-            };
-
-            // Add system message if provided
-            const systemMessage = options.system || this.defaultConfig.system;
-            if (systemMessage) {
-                requestOptions.system = systemMessage;
-            }
-
-            // Only add optional parameters if they were specified
-            if (options.max_tokens || this.defaultConfig.max_tokens) {
-                requestOptions.max_tokens = options.max_tokens || this.defaultConfig.max_tokens;
-            }
-
-            if (options.temperature !== undefined || this.defaultConfig.temperature !== undefined) {
-                requestOptions.temperature = options.temperature !== undefined ? options.temperature : this.defaultConfig.temperature;
-            }
-
-            const message = await this.anthropic.messages.create(requestOptions);
-
-            return {
-                content: message.content[0].text,
-                usage: message.usage,
-                model: message.model
-            };
-        } catch (error) {
-          throw errors.internal(`Anthropic API error: ${error.message}`, { error });
-        }
-    }
-
+    /**
+     * Generate AI response for a given prompt.
+     *
+     * Request behavior parameters (temperature, maxTokens) are passed here,
+     * not in the constructor. This allows varying behavior per request
+     * without recreating the AI client.
+     *
+     * This method:
+     * 1. Validates the prompt
+     * 2. Delegates generation to the provider
+     * 3. Standardizes the response format
+     * 4. Adds metadata (timestamp, config used)
+     *
+     * @param {string|Object} params - Prompt string or configuration object
+     * @param {string} params.prompt - User prompt/question (required)
+     * @param {number} [params.temperature] - Temperature for this request (0-1)
+     * @param {number} [params.maxTokens] - Max tokens for this request
+     * @returns {Promise<Object>} Standardized response object
+     *
+     * @example
+     * const response = await ai.generate({
+     *   prompt: "Explain S3 bucket encryption",
+     *   temperature: 0.2,
+     *   maxTokens: 1000
+     * });
+     *
+     * // response = {
+     * //   success: true,
+     * //   provider: "openai",
+     * //   prompt: "Explain S3 bucket encryption",
+     * //   response: "...",
+     * //   model: "gpt-4",
+     * //   usage: { ... },
+     * //   timestamp: "2025-10-30T12:00:00.000Z",
+     * //   config: { temperature: 0.2, maxTokens: 1000 }
+     * // }
+     */
     async generate(params) {
-        // Support both object params and direct prompt string
+        // Support both string prompt and object params for convenience
         if (typeof params === 'string') {
             params = { prompt: params };
         }
 
-        // Extract prompt
+        // Validate prompt is provided
         const prompt = params.prompt;
-
-        // Validate required parameters
         if (!prompt) {
-          throw errors.insufficientData("Prompt is required. Please provide a non-empty prompt");
+            throw errors.insufficientData("Prompt is required. Please provide a non-empty prompt");
         }
 
-        // Use provider from params or constructor (no fallback defaults)
-        const provider = params.provider || this.defaultConfig.provider;
-        const model = params.model || params.modelName || this.defaultConfig.modelName;
-        const max_tokens = params.max_tokens || this.defaultConfig.max_tokens;
-        const temperature = params.temperature !== undefined ? params.temperature : this.defaultConfig.temperature;
-        const system = params.system || this.defaultConfig.system;
-
-        // Validate provider (should not reach here if constructor validation worked)
-        const normalizedProvider = provider.toLowerCase();
-        if (!PROVIDERS[normalizedProvider]) {
-          throw errors.badRequest(`Unsupported provider: ${provider}. Supported providers: ${Object.keys(PROVIDERS).join(', ')}`);
-        }
-
-        // Prepare options (only include defined values)
+        // Prepare options for provider (only request behavior parameters)
         const options = {
-            model: model,
-            ...params // Allow any other custom options
+            maxTokens: params.maxTokens,
+            temperature: params.temperature,
         };
 
-        // Only add optional parameters if they have values
-        if (max_tokens) options.max_tokens = max_tokens;
-        if (temperature !== undefined) options.temperature = temperature;
-        if (system) options.system = system;
+        // Delegate to provider for actual generation
+        const result = await this.provider.generate(prompt, options);
 
-        // Route to appropriate provider
-        let result;
-        switch (normalizedProvider) {
-            case 'openai':
-                result = await this.callOpenAI(prompt, options);
-                break;
-            case 'anthropic':
-                result = await this.callAnthropic(prompt, options);
-                break;
-            default:
-              throw errors.notImplemented(`Provider ${provider} is not implemented`);
-        }
-
+        // Add metadata and return standardized response
         return {
             success: true,
-            provider: normalizedProvider,
+            provider: this.provider.getName(),
             prompt,
             response: result.content,
             model: result.model,
             usage: result.usage,
             timestamp: new Date().toISOString(),
             config: {
-                system: system || null,
-                max_tokens: max_tokens || null,
-                temperature: temperature !== undefined ? temperature : null
+                temperature: options.temperature !== undefined ? options.temperature : null,
+                maxTokens: options.maxTokens || null
             }
         };
     }
+
+    /**
+     * Get the current provider name.
+     *
+     * @returns {string} Provider name in lowercase
+     */
+    getProviderName() {
+        return this.provider.getName();
+    }
+
+    /**
+     * Get list of supported providers.
+     * Static method for convenience.
+     *
+     * @returns {string[]} Array of supported provider names
+     */
+    static getSupportedProviders() {
+        return ProviderFactory.getSupportedProviders();
+    }
 }
 
+// Default export: AI (v1)
 module.exports = AI;
+
+// Named export: { AI }
+module.exports.AI = AI;
+
