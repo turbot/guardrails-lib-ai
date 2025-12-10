@@ -1,5 +1,11 @@
 # Release History
 
+## 1.2.0[2025-12-10]
+
+### Added
+
+- Support for `AWS Bedrock` and `Azure OpenAI` providers.
+
 ## 1.1.0[2025-09-02]
 
 ### Added
